@@ -108,35 +108,35 @@ Every reported benchmark includes a complete workload specification.
 
 The engine explicitly separates the two phases of autoregressive generation.
 
-For a prompt of length (T), prefill processes:
+For a prompt of length $T$, prefill processes:
 
-[
-X\in\mathbb{R}^{B\times T\times d_{\mathrm{model}}}
-]
+$$
+X \in \mathbb{R}^{B \times T \times d_{\mathrm{model}}}
+$$
 
 and populates the KV cache.
 
 During decode, each iteration processes the newly generated token:
 
-[
-X_t\in\mathbb{R}^{B\times1\times d_{\mathrm{model}}}
-]
+$$
+X_t \in \mathbb{R}^{B \times 1 \times d_{\mathrm{model}}}
+$$
 
 while reusing previously computed keys and values.
 
-For layer (l), the cached tensors have the conceptual shape:
+For layer $l$, the cached tensors have the conceptual shape:
 
-[
+$$
 K_l,V_l
 \in
-\mathbb{R}^{B\times H\times T\times d_h}
-]
+\mathbb{R}^{B \times H \times T \times d_h}
+$$
 
 where:
 
-[
-d_{\mathrm{model}}=H d_h.
-]
+$$
+d_{\mathrm{model}} = H d_h.
+$$
 
 This separation allows the project to measure prefill and decode behavior independently.
 
@@ -148,15 +148,15 @@ Without caching, autoregressive generation repeatedly recomputes the keys and va
 
 With caching, previously computed:
 
-[
+$$
 K_{1:t-1},V_{1:t-1}
-]
+$$
 
 are retained and only:
 
-[
+$$
 K_t,V_t
-]
+$$
 
 are computed for the new token.
 
@@ -164,12 +164,12 @@ The implementation validates this optimization through deterministic cached-vs-u
 
 The correctness requirement is:
 
-[
+$$
 y^{\mathrm{cached}}_{1:T}
 =========================
 
 y^{\mathrm{uncached}}_{1:T}.
-]
+$$
 
 Where appropriate, the implementation also compares cached and uncached logits within numerical tolerance.
 
@@ -230,9 +230,9 @@ Physical blocks:
 
 through a block table:
 
-[
-\mathrm{BlockTable}_i[j]=p.
-]
+$$
+\mathrm{BlockTable}_i[j] = p.
+$$
 
 Attention then gathers the required keys and values through this logical-to-physical mapping.
 
@@ -268,7 +268,7 @@ Git commit
 
 For example, a throughput result should be interpreted as:
 
-[
+$$
 \mathrm{Throughput}
 ===================
 
@@ -278,7 +278,7 @@ f(
 \mathrm{model},
 \mathrm{workload}
 ).
-]
+$$
 
 This prevents isolated numbers such as `"500 tokens/sec"` from being presented without the conditions that produced them.
 
@@ -334,32 +334,32 @@ Concurrency is progressively increased to identify the point where throughput st
 
 ### TTFT
 
-[
+$$
 TTFT
 ====
 
 ## t_{\mathrm{first\ token}}
 
 t_{\mathrm{request\ arrival}}
-]
+$$
 
 ### ITL
 
 For consecutive generated tokens:
 
-[
-ITL_i=t_i-t_{i-1}.
-]
+$$
+ITL_i = t_i - t_{i-1}.
+$$
 
 ### Throughput
 
-[
+$$
 \mathrm{Throughput}
 ===================
 
 \frac{N_{\mathrm{output\ tokens}}}
 {T_{\mathrm{wall}}}
-]
+$$
 
 reported in output tokens/sec.
 
@@ -367,15 +367,15 @@ reported in output tokens/sec.
 
 Latency distributions are reported using:
 
-[
-p50=\operatorname{percentile}(x,50)
-]
+$$
+p50 = \operatorname{percentile}(x,50)
+$$
 
 and:
 
-[
-p95=\operatorname{percentile}(x,95).
-]
+$$
+p95 = \operatorname{percentile}(x,95).
+$$
 
 Mean latency is retained where useful but is not treated as a sufficient characterization of serving performance.
 
@@ -435,13 +435,13 @@ against a common evaluation and serving workload.
 
 The resulting trade-off is studied across:
 
-[
+$$
 \text{quality}
 \leftrightarrow
 \text{memory}
 \leftrightarrow
 \text{latency}.
-]
+$$
 
 Quality is evaluated using AlgerianMMLU rather than assuming that quantization preserves model quality for free.
 
@@ -500,9 +500,9 @@ The project treats implementation and evidence as separate deliverables.
 
 # Project Outcome
 
-The final artifact is intended to demonstrate an end-to-end understanding of modern LLM inference:
+The final artifact demonstrates an end-to-end understanding of modern LLM inference:
 
-[
+$$
 \boxed{
 \text{Request}
 \rightarrow
@@ -520,7 +520,7 @@ The final artifact is intended to demonstrate an end-to-end understanding of mod
 \rightarrow
 \text{Serving}
 }
-]
+$$
 
 Rather than treating inference frameworks as black boxes, the project builds simplified versions of their fundamental mechanisms, validates them experimentally, and then connects those mechanisms to a production serving system.
 
@@ -532,6 +532,6 @@ M1  KV cache and generation                     ⬜
 M2  Continuous batching                         ⬜
 M3  Paged KV memory                             ⬜
 M4  Benchmark harness                           ⬜
-M5  vLLM deployment and gap analysis             ⬜
+M5  vLLM deployment and gap analysis            ⬜
 M6  Quantized Darija model serving              ⬜
 ```
