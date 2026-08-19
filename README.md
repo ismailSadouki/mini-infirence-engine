@@ -64,42 +64,44 @@ Every reported benchmark includes a complete workload specification.
 ## Architecture
 
 ```text
-                    ┌─────────────────┐
-                    │  Generation API │
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │ Request Manager │
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │    Scheduler    │
-                    └────────┬────────┘
-                             │
-                 ┌───────────┴───────────┐
-                 ▼                       ▼
-          ┌─────────────┐         ┌─────────────┐
-          │   Prefill   │         │    Decode   │
-          └──────┬──────┘         └──────┬──────┘
-                 │                       │
-                 └───────────┬───────────┘
-                             ▼
-                      ┌─────────────┐
-                      │  KV Cache   │
-                      └──────┬──────┘
-                             │
-                     ┌───────▼────────┐
-                     │ Block Manager  │
-                     └───────┬────────┘
-                             │
-                     ┌───────▼────────┐
-                     │  Block Table   │
-                     └───────┬────────┘
-                             │
-                     ┌───────▼────────┐
-                     │ Paged Attention│
-                     └────────────────┘
+                    +-----------------+
+                    |  Generation API |
+                    +--------+--------+
+                             |
+                             v
+                    +-----------------+
+                    | Request Manager |
+                    +--------+--------+
+                             |
+                    +--------v--------+
+                    |    Scheduler    |
+                    +--------+--------+
+                             |
+                 +-----------+-----------+
+                 |                       |
+                 v                       v
+          +-------------+         +-------------+
+          |   Prefill   |         |    Decode   |
+          +------+------+         +------+------+
+                 |                       |
+                 +-----------+-----------+
+                             |
+                             v
+                      +-------------+
+                      |   KV Cache  |
+                      +------+------+ 
+                             |
+                     +-------v--------+
+                     |  Block Manager |
+                     +-------+--------+
+                             |
+                     +-------v--------+
+                     |  Block Table  |
+                     +-------+--------+
+                             |
+                     +-------v--------+
+                     | Paged Attention|
+                     +----------------+
 ```
 
 ---
@@ -111,7 +113,7 @@ The engine explicitly separates the two phases of autoregressive generation.
 For a prompt of length $T$, prefill processes:
 
 $$
-X \in \mathbb{R}^{B \times T \times d_{\mathrm{model}}}
+X \in \mathbb{R}^{B \times T \times d_{\text{model}}}
 $$
 
 and populates the KV cache.
@@ -119,7 +121,7 @@ and populates the KV cache.
 During decode, each iteration processes the newly generated token:
 
 $$
-X_t \in \mathbb{R}^{B \times 1 \times d_{\mathrm{model}}}
+X_t \in \mathbb{R}^{B \times 1 \times d_{\text{model}}}
 $$
 
 while reusing previously computed keys and values.
@@ -127,7 +129,7 @@ while reusing previously computed keys and values.
 For layer $l$, the cached tensors have the conceptual shape:
 
 $$
-K_l,V_l
+K_l, V_l
 \in
 \mathbb{R}^{B \times H \times T \times d_h}
 $$
@@ -135,7 +137,7 @@ $$
 where:
 
 $$
-d_{\mathrm{model}} = H d_h.
+d_{\text{model}} = H d_h
 $$
 
 This separation allows the project to measure prefill and decode behavior independently.
@@ -149,13 +151,13 @@ Without caching, autoregressive generation repeatedly recomputes the keys and va
 With caching, previously computed:
 
 $$
-K_{1:t-1},V_{1:t-1}
+K_{1:t-1}, V_{1:t-1}
 $$
 
 are retained and only:
 
 $$
-K_t,V_t
+K_t, V_t
 $$
 
 are computed for the new token.
@@ -165,10 +167,10 @@ The implementation validates this optimization through deterministic cached-vs-u
 The correctness requirement is:
 
 $$
-y^{\mathrm{cached}}_{1:T}
-=========================
+y^{\text{cached}}_{1:T}
+=======================
 
-y^{\mathrm{uncached}}_{1:T}.
+y^{\text{uncached}}_{1:T}
 $$
 
 Where appropriate, the implementation also compares cached and uncached logits within numerical tolerance.
@@ -183,24 +185,26 @@ It then introduces token-level continuous batching:
 
 ```text
 Waiting requests
-       │
-       ▼
+       |
+       v
    Scheduler
-       │
-       ▼
+       |
+       v
  Active batch
-       │
-       ▼
+       |
+       v
   Decode step
-       │
-   ┌───┴───┐
-   ▼       ▼
+       |
+   +---+---+
+   |       |
+   v       v
 Finished  Active
-   │       │
-  Evict    │
-   │       │
-   └───┬───┘
-       ▼
+   |       |
+  Evict    |
+   |       |
+   +---+---+
+       |
+       v
 Admit waiting requests
 ```
 
@@ -231,7 +235,7 @@ Physical blocks:
 through a block table:
 
 $$
-\mathrm{BlockTable}_i[j] = p.
+\text{BlockTable}_i[j] = p
 $$
 
 Attention then gathers the required keys and values through this logical-to-physical mapping.
@@ -266,21 +270,21 @@ Software environment
 Git commit
 ```
 
-For example, a throughput result should be interpreted as:
+A throughput result should therefore be interpreted as:
 
 $$
-\mathrm{Throughput}
-===================
+\text{Throughput}
+=================
 
 f(
-\mathrm{engine},
-\mathrm{hardware},
-\mathrm{model},
-\mathrm{workload}
-).
+\text{engine},
+\text{hardware},
+\text{model},
+\text{workload}
+)
 $$
 
-This prevents isolated numbers such as `"500 tokens/sec"` from being presented without the conditions that produced them.
+This prevents isolated numbers such as `500 tokens/sec` from being presented without the conditions that produced them.
 
 ---
 
@@ -332,52 +336,68 @@ Concurrency is progressively increased to identify the point where throughput st
 
 # Metrics
 
-### TTFT
+## TTFT
+
+Time To First Token:
 
 $$
-TTFT
-====
+\text{TTFT}
+===========
 
-## t_{\mathrm{first\ token}}
+## t_{\text{first token}}
 
-t_{\mathrm{request\ arrival}}
+t_{\text{request arrival}}
 $$
 
-### ITL
+## ITL
 
 For consecutive generated tokens:
 
 $$
-ITL_i = t_i - t_{i-1}.
+\text{ITL}_i
+============
+
+t_i - t_{i-1}
 $$
 
-### Throughput
+## Throughput
+
+Output-token throughput:
 
 $$
-\mathrm{Throughput}
-===================
+\text{Throughput}
+=================
 
-\frac{N_{\mathrm{output\ tokens}}}
-{T_{\mathrm{wall}}}
+\frac{
+N_{\text{output tokens}}
+}{
+T_{\text{wall}}
+}
 $$
 
 reported in output tokens/sec.
 
-### Percentiles
+## Percentiles
 
 Latency distributions are reported using:
 
 $$
-p50 = \operatorname{percentile}(x,50)
+p50
+===
+
+\text{percentile}(x, 50)
 $$
 
 and:
 
 $$
-p95 = \operatorname{percentile}(x,95).
+p95
+===
+
+\text{percentile}(x, 95)
 $$
 
-Mean latency is retained where useful but is not treated as a sufficient characterization of serving performance.
+Mean latency may also be reported, but it is not treated as a sufficient characterization of serving performance.
 
 ---
 
@@ -392,16 +412,18 @@ Same model
 Same hardware
 Same dtype
 Same workload
-        │
-   ┌────┴────┐
-   ▼         ▼
+        |
+   +----+----+
+   |         |
+   v         v
 Mini Engine  vLLM
-   │         │
-   └────┬────┘
-        ▼
+   |         |
+   +----+----+
+        |
+        v
 Performance comparison
-        │
-        ▼
+        |
+        v
 Gap decomposition
 ```
 
@@ -440,7 +462,7 @@ $$
 \leftrightarrow
 \text{memory}
 \leftrightarrow
-\text{latency}.
+\text{latency}
 $$
 
 Quality is evaluated using AlgerianMMLU rather than assuming that quantization preserves model quality for free.
@@ -449,14 +471,14 @@ The selected model is exposed through a streaming API:
 
 ```text
 vLLM
-  │
-  ▼
+  |
+  v
 FastAPI
-  │
-  ▼
+  |
+  v
 SSE streaming
-  │
-  ▼
+  |
+  v
 Load testing
 ```
 
@@ -466,14 +488,55 @@ Load testing
 
 ```text
 mini-inference-engine/
-├── engine/                 # Inference engine
-├── bench/                  # Workload generation and metrics
-├── tests/                  # Correctness and unit tests
-├── serve/                  # Production serving and load testing
-├── configs/                # Reproducible workloads
-├── experiments/results/    # Raw and processed experiment results
-├── docs/                   # Technical documentation
-├── scripts/                # Benchmarking utilities
+├── engine/
+│   ├── __init__.py
+│   ├── model_adapter.py
+│   ├── request.py
+│   ├── generation.py
+│   ├── kv_cache.py
+│   ├── scheduler.py
+│   ├── block_pool.py
+│   ├── block_table.py
+│   └── attention.py
+│
+├── bench/
+│   ├── workloads.py
+│   ├── generator.py
+│   ├── metrics.py
+│   ├── runner.py
+│   └── plots.py
+│
+├── tests/
+│   ├── test_generation.py
+│   ├── test_kv_cache.py
+│   ├── test_scheduler.py
+│   ├── test_block_pool.py
+│   ├── test_block_table.py
+│   └── test_paged_attention.py
+│
+├── serve/
+│   ├── fastapi_app.py
+│   └── locustfile.py
+│
+├── configs/
+│   ├── workload_single.yaml
+│   ├── workload_batch.yaml
+│   └── workload_saturation.yaml
+│
+├── experiments/
+│   └── results/
+│
+├── docs/
+│   ├── architecture.md
+│   ├── environment.md
+│   ├── workload_contract.md
+│   ├── inference_glossary.md
+│   └── kv_cache_bug_playbook.md
+│
+├── scripts/
+│   ├── benchmark.py
+│   └── plot_results.py
+│
 ├── pyproject.toml
 └── README.md
 ```
@@ -527,11 +590,11 @@ Rather than treating inference frameworks as black boxes, the project builds sim
 ## Status
 
 ```text
-M0  Scope, workload contract, environment       ⬜
-M1  KV cache and generation                     ⬜
-M2  Continuous batching                         ⬜
-M3  Paged KV memory                             ⬜
-M4  Benchmark harness                           ⬜
-M5  vLLM deployment and gap analysis            ⬜
-M6  Quantized Darija model serving              ⬜
+M0  Scope, workload contract, environment        ⬜
+M1  KV cache and generation                      ⬜
+M2  Continuous batching                          ⬜
+M3  Paged KV memory                              ⬜
+M4  Benchmark harness                            ⬜
+M5  vLLM deployment and gap analysis             ⬜
+M6  Quantized Darija model serving               ⬜
 ```
