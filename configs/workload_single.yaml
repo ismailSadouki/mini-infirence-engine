@@ -1,0 +1,57 @@
+Workload: S1 — Single-request baseline
+
+Hardware:
+    NVIDIA GeForce RTX 3050 Laptop GPU
+    4 GB VRAM
+    
+
+
+Model:
+    Qwen/Qwen2.5-0.5B-Instruct
+
+Dtype:
+    float16
+
+Concurrency:
+    1
+
+Request arrival:
+    Sequential
+    One request starts after the previous request finishes
+
+Prompt length:
+    Fixed: 512 tokens
+
+Output length:
+    Fixed: 128 new tokens
+
+Sampling:
+    Greedy / deterministic
+    temperature = 0
+    top_p = 1.0
+    seed = 42
+
+Warmup:
+    5 requests
+
+Measured requests:
+    20 requests
+
+Metrics:
+    TTFT
+    prefill latency
+    decode latency
+    ITL
+    total generation latency
+    generated tokens/sec
+
+Reporting:
+    mean
+    p50
+    p95
+
+Reproducibility:
+    Save workload configuration
+    Save model revision
+    Save git commit
+    Save raw measurements
