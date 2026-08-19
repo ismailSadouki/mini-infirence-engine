@@ -4,7 +4,7 @@ A from-scratch LLM inference engine focused on the core mechanisms behind modern
 
 ## Why This Project?
 
-Most LLM projects focus on **training models** or calling existing inference frameworks.
+Most LLM projects focus on **training models** or using existing inference frameworks.
 
 This project focuses on a different question:
 
@@ -61,7 +61,7 @@ Every reported benchmark includes a complete workload specification.
 
 ---
 
-## Architecture
+# Architecture
 
 ```text
                     +-----------------+
@@ -89,7 +89,7 @@ Every reported benchmark includes a complete workload specification.
                              v
                       +-------------+
                       |   KV Cache  |
-                      +------+------+ 
+                      +------+------+
                              |
                      +-------v--------+
                      |  Block Manager |
@@ -106,14 +106,14 @@ Every reported benchmark includes a complete workload specification.
 
 ---
 
-## Prefill and Decode
+# Prefill and Decode
 
 The engine explicitly separates the two phases of autoregressive generation.
 
 For a prompt of length $T$, prefill processes:
 
 $$
-X \in \mathbb{R}^{B \times T \times d_{\text{model}}}
+X \in R^{B \times T \times d_{model}}
 $$
 
 and populates the KV cache.
@@ -121,7 +121,7 @@ and populates the KV cache.
 During decode, each iteration processes the newly generated token:
 
 $$
-X_t \in \mathbb{R}^{B \times 1 \times d_{\text{model}}}
+X_t \in R^{B \times 1 \times d_{model}}
 $$
 
 while reusing previously computed keys and values.
@@ -129,22 +129,20 @@ while reusing previously computed keys and values.
 For layer $l$, the cached tensors have the conceptual shape:
 
 $$
-K_l, V_l
-\in
-\mathbb{R}^{B \times H \times T \times d_h}
+K_l, V_l \in R^{B \times H \times T \times d_h}
 $$
 
 where:
 
 $$
-d_{\text{model}} = H d_h
+d_{model} = H d_h
 $$
 
 This separation allows the project to measure prefill and decode behavior independently.
 
 ---
 
-## KV Cache
+# KV Cache
 
 Without caching, autoregressive generation repeatedly recomputes the keys and values for previous tokens.
 
@@ -167,17 +165,14 @@ The implementation validates this optimization through deterministic cached-vs-u
 The correctness requirement is:
 
 $$
-y^{\text{cached}}_{1:T}
-=======================
-
-y^{\text{uncached}}_{1:T}
+y^{cached}*{1:T} = y^{uncached}*{1:T}
 $$
 
 Where appropriate, the implementation also compares cached and uncached logits within numerical tolerance.
 
 ---
 
-## Continuous Batching
+# Continuous Batching
 
 The project first implements static batching as a baseline.
 
@@ -212,7 +207,7 @@ This makes it possible to measure how request-length variability affects GPU uti
 
 ---
 
-## Paged KV Memory
+# Paged KV Memory
 
 The project implements a simplified paged KV-memory system inspired by the ideas behind PagedAttention.
 
@@ -235,7 +230,7 @@ Physical blocks:
 through a block table:
 
 $$
-\text{BlockTable}_i[j] = p
+BlockTable_i[j] = p
 $$
 
 Attention then gathers the required keys and values through this logical-to-physical mapping.
@@ -273,15 +268,7 @@ Git commit
 A throughput result should therefore be interpreted as:
 
 $$
-\text{Throughput}
-=================
-
-f(
-\text{engine},
-\text{hardware},
-\text{model},
-\text{workload}
-)
+Throughput = f(engine, hardware, model, workload)
 $$
 
 This prevents isolated numbers such as `500 tokens/sec` from being presented without the conditions that produced them.
@@ -292,7 +279,7 @@ This prevents isolated numbers such as `500 tokens/sec` from being presented wit
 
 The benchmark suite progressively introduces more realistic serving conditions.
 
-### S1 — Single Request
+## S1 — Single Request
 
 ```text
 Concurrency: 1
@@ -307,7 +294,7 @@ Used for:
 * prefill/decode timing
 * cached vs uncached comparison
 
-### S2 — Variable-Length Requests
+## S2 — Variable-Length Requests
 
 Introduces different prompt and generation lengths.
 
@@ -317,7 +304,7 @@ Used for:
 * scheduler behavior
 * KV memory utilization
 
-### S3 — Concurrent Requests
+## S3 — Concurrent Requests
 
 Introduces multiple simultaneous requests.
 
@@ -328,7 +315,7 @@ Used for:
 * TTFT
 * ITL
 
-### S4 — Saturation
+## S4 — Saturation
 
 Concurrency is progressively increased to identify the point where throughput stops scaling and latency begins increasing sharply.
 
@@ -341,60 +328,55 @@ Concurrency is progressively increased to identify the point where throughput st
 Time To First Token:
 
 $$
-\text{TTFT}
-===========
-
-## t_{\text{first token}}
-
-t_{\text{request arrival}}
+TTFT = t_{first} - t_{request}
 $$
+
+where:
+
+* $t_{first}$ is the timestamp of the first generated token
+* $t_{request}$ is the request arrival timestamp
 
 ## ITL
 
 For consecutive generated tokens:
 
 $$
-\text{ITL}_i
-============
-
-t_i - t_{i-1}
+ITL_i = t_i - t_{i-1}
 $$
+
+## TPOT
+
+Time Per Output Token:
+
+$$
+TPOT = \frac{T_{decode}}{N_{output}}
+$$
+
+where:
+
+* $T_{decode}$ is the decode time
+* $N_{output}$ is the number of generated tokens
 
 ## Throughput
 
 Output-token throughput:
 
 $$
-\text{Throughput}
-=================
-
-\frac{
-N_{\text{output tokens}}
-}{
-T_{\text{wall}}
-}
+Throughput = \frac{N_{output}}{T_{wall}}
 $$
 
 reported in output tokens/sec.
 
 ## Percentiles
 
-Latency distributions are reported using:
+For a latency distribution $x$:
 
 $$
-p50
-===
-
-\text{percentile}(x, 50)
+p50 = percentile(x, 50)
 $$
 
-and:
-
 $$
-p95
-===
-
-\text{percentile}(x, 95)
+p95 = percentile(x, 95)
 $$
 
 Mean latency may also be reported, but it is not treated as a sufficient characterization of serving performance.
@@ -458,11 +440,7 @@ against a common evaluation and serving workload.
 The resulting trade-off is studied across:
 
 $$
-\text{quality}
-\leftrightarrow
-\text{memory}
-\leftrightarrow
-\text{latency}
+quality \leftrightarrow memory \leftrightarrow latency
 $$
 
 Quality is evaluated using AlgerianMMLU rather than assuming that quantization preserves model quality for free.
@@ -566,28 +544,28 @@ The project treats implementation and evidence as separate deliverables.
 The final artifact demonstrates an end-to-end understanding of modern LLM inference:
 
 $$
-\boxed{
-\text{Request}
+Request
 \rightarrow
-\text{Scheduling}
+Scheduling
 \rightarrow
-\text{Prefill}
+Prefill
 \rightarrow
-\text{KV Cache}
+KV\ Cache
 \rightarrow
-\text{Decode}
+Decode
 \rightarrow
-\text{Batching}
+Batching
 \rightarrow
-\text{Paged Memory}
+Paged\ Memory
 \rightarrow
-\text{Serving}
-}
+Serving
 $$
 
 Rather than treating inference frameworks as black boxes, the project builds simplified versions of their fundamental mechanisms, validates them experimentally, and then connects those mechanisms to a production serving system.
 
-## Status
+---
+
+# Status
 
 ```text
 M0  Scope, workload contract, environment        ⬜
