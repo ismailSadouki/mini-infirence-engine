@@ -75,3 +75,6 @@ class GenerationOutput():
         default_factory=list
     )
     finish_reason: str = "length"
+
+    prefill_tokens: int = 0
+    decode_tokens: int = 0

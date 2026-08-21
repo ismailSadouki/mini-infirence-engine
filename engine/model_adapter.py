@@ -187,3 +187,75 @@ class ModelAdapter:
 
 
         return filtered
+
+
+    @torch.inference_mode()
+    def forward_prefill(
+        self,
+        input_ids: torch.Tensor
+    ):
+        """
+        Process the entire prompt.
+
+        input_ids:
+            [B, T]
+
+        Returns:
+            logits:
+                [B, T, V]
+
+            cache:
+                placeholder for M1.3
+        """
+        input_ids = input_ids.to(self.device)
+
+        outputs = self.model(
+            input_ids=input_ids,
+            use_cache=False
+        )
+
+        return outputs.logits, None
+
+
+    @torch.inference_mode()
+    def forward_decode(
+        self,
+        last_token: torch.Tensor,
+        cache,
+        position: int
+    ):
+        """
+        Process exactly one token during decode.
+
+        last_token:
+            [B, 1]
+
+        cache:
+            KV cache placeholder for M1.3
+
+        position:
+            absolute position of the token
+        """
+        if last_token.ndim != 2:
+            raise ValueError(
+                f"last_token must have shape [B, 1], "
+                f"got {tuple(last_token.shape)}"
+            )
+        if last_token.shape[1] != 1:
+            raise ValueError(
+                "forward_decode() must receive exactly one token."
+            )
+        
+
+
+        last_token = last_token.to(self.device)
+        # M1.2 placeholder.
+        #
+        # This is NOT yet a correct cached decode.
+        # M1.3 will replace this with actual KV-cache usage.
+        outputs = self.model(
+            input_ids=last_token,
+            use_cache=False
+        )
+
+        return outputs.logits, cache
