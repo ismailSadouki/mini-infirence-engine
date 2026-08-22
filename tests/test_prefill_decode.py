@@ -20,6 +20,7 @@ class RecordingAdapter:
         self.decode_shapes = []
 
         self.device = "cpu"
+        self.dtype = torch.bfloat16
 
     def tokenize(self, text):
         return [1, 2, 3, 4]

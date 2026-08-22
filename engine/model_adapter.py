@@ -13,6 +13,12 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from .types import SamplingConfig
+from engine.qwen2_cached import CachedQwen2Model
+
+
+
+MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
+
 
 
 
@@ -27,6 +33,7 @@ class ModelAdapter:
             dtype: torch.dtype = torch.bfloat16,
     ):
         self.device = torch.device(device)
+        self.dtype = dtype
 
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -36,8 +43,13 @@ class ModelAdapter:
             low_cpu_mem_usage=True,
         ).to(self.device)
 
+        self.cached_model = CachedQwen2Model(
+            self.model.model,
+            self.model.config
+        )
 
         self.model.eval()
+        
         
 
 
@@ -259,3 +271,48 @@ class ModelAdapter:
         )
 
         return outputs.logits, cache
+
+
+    @torch.inference_mode()
+    def forward_prefill_cached(
+        self,
+        input_ids,
+        cache,
+    ):
+        hidden_states = self.cached_model.forward(
+            input_ids=input_ids,
+            cache=cache,
+            position=0
+        )
+        logits = self.model.lm_head(
+            hidden_states
+        )
+
+
+        return logits
+
+
+    @torch.inference_mode()
+    def forward_decode_cached(
+        self,
+        last_token,
+        cache,
+        position,
+    ):
+        if last_token.shape[1] != 1:
+            raise ValueError(
+                "Decode must receive exactly one token"
+            )
+
+        hidden_states  = self.cached_model.forward(
+            input_ids=last_token,
+            cache=cache,
+            position=position
+        )
+
+        logits = self.model.lm_head(
+            hidden_states
+        )
+
+
+        return logits

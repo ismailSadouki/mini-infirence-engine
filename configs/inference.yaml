@@ -1,0 +1,11 @@
+kv_cache:
+  num_layers: 24
+  num_kv_heads: 2
+  max_seq_len: 512
+  head_dim: 64
+
+model:
+  model_name: "Qwen/Qwen2.5-0.5B-Instruct"
+  dtype: bfloat16
+
+device: cuda
