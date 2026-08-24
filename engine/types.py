@@ -47,8 +47,23 @@ class RequestState():
     request_id: str
     prompt_ids: list[int]
     generated_ids: list[int] = field(default_factory=list)
-    position: int = 0
+
+    # Sequence / decode state
+    prompt_len: int = field(init=False)
+    current_pos: int = field(init=False)
+    generated_count: int = field(default=0)
+
+
+    # KV-cache ownership
+    cache_id: Optional[object] = None
+
+
+    # Lifecycle
     finished: bool = False
+    finished_reason: Optional[str] = None
+
+
+    # Timing
     arrival_time: float = field(
         default_factory=time.perf_counter
     )
@@ -58,7 +73,13 @@ class RequestState():
     token_timestamps: list[float] = field(
         default_factory=list
     )
-    cache_handle: Optional[object] = None
+    #cache_handle: Optional[object] = None
+    
+    def __post_init__(self):
+        self.prompt_len = len(self.prompt_ids)
+        self.current_pos = self.prompt_len
+
+    
 
 
 @dataclass
