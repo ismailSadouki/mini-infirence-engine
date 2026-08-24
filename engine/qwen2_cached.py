@@ -166,8 +166,9 @@ class CachedQwen2Attention:
 
         attention_weights = F.softmax(
             scores,
-            dim=-1
-        )
+            dim=-1,
+            dtype=torch.float32,
+        ).to(query_states.dtype)
 
         output = torch.matmul(
             attention_weights,
@@ -255,6 +256,10 @@ class CachedQwen2Model:
             )
 
             residual = hidden_states
+
+            hidden_states = layer.post_attention_layernorm(
+                hidden_states
+            )
 
             hidden_states = layer.mlp(
                 hidden_states
