@@ -1,57 +1,58 @@
-Workload: S1 — Single-request baseline
+workload:
+  id: "S1"
+  name: "Single-request baseline"
 
-Hardware:
-    NVIDIA GeForce RTX 3050 Laptop GPU
-    4 GB VRAM
-    
+hardware:
+  device: "cuda"
+  expected_gpu: "NVIDIA GeForce RTX 3050 Laptop GPU"
+  vram_gb: 4
 
+model:
+  name: "Qwen/Qwen2.5-0.5B-Instruct"
+  dtype: "bfloat16"
 
-Model:
-    Qwen/Qwen2.5-0.5B-Instruct
+request:
+  concurrency: 1
 
-Dtype:
-    float16
+  arrival:
+    type: "sequential"
+    description: "One request starts after the previous request finishes"
 
-Concurrency:
-    1
+  prompt:
+    type: "fixed"
+    tokens: 512
 
-Request arrival:
-    Sequential
-    One request starts after the previous request finishes
+  output:
+    type: "fixed"
+    new_tokens: 128
 
-Prompt length:
-    Fixed: 512 tokens
+decoding:
+  strategy: "greedy"
+  deterministic: true
+  temperature: 0.0
+  top_p: 1.0
+  seed: 42
 
-Output length:
-    Fixed: 128 new tokens
+benchmark:
+  warmup_requests: 5
+  measured_requests: 20
 
-Sampling:
-    Greedy / deterministic
-    temperature = 0
-    top_p = 1.0
-    seed = 42
+metrics:
+  - ttft
+  - prefill_latency
+  - decode_latency
+  - itl
+  - total_generation_latency
+  - generated_tokens_per_second
 
-Warmup:
-    5 requests
+reporting:
+  statistics:
+    - mean
+    - p50
+    - p95
 
-Measured requests:
-    20 requests
-
-Metrics:
-    TTFT
-    prefill latency
-    decode latency
-    ITL
-    total generation latency
-    generated tokens/sec
-
-Reporting:
-    mean
-    p50
-    p95
-
-Reproducibility:
-    Save workload configuration
-    Save model revision
-    Save git commit
-    Save raw measurements
+reproducibility:
+  save_workload_config: true
+  save_model_revision: true
+  save_git_commit: true
+  save_raw_measurements: true
