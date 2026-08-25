@@ -5,6 +5,15 @@ from typing import Optional
 import time
 
 
+from pathlib import Path
+import sys
+
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
+
+from engine.kv_cache import KVCache
+
+
 
 @dataclass
 class SamplingConfig():
@@ -56,6 +65,8 @@ class RequestState():
 
     # KV-cache ownership
     cache_id: Optional[object] = None
+    cache_handle: Optional[KVCache] = None
+
 
 
     # Lifecycle
@@ -73,7 +84,6 @@ class RequestState():
     token_timestamps: list[float] = field(
         default_factory=list
     )
-    #cache_handle: Optional[object] = None
     
     def __post_init__(self):
         self.prompt_len = len(self.prompt_ids)

@@ -51,7 +51,12 @@ class ModelAdapter:
         self.model.eval()
         
         
-
+    def to_tensor(self, token_ids: list[int]) -> torch.Tensor:
+        return torch.tensor(
+            [token_ids],
+            dtype=torch.long,
+            device=self.device,
+        )
 
     def tokenize(self, text: str) -> list[int]:
         """
