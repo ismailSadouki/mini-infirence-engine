@@ -21,6 +21,9 @@ class WaitingQueue:
         self._queue = deque()
 
     def enqueue(self, request: RequestState) -> None:
+        """
+        Add a request to the waiting queue
+        """
         if len(self._queue) >= self.max_waiting:
             raise RuntimeError("Waiting queue is full")
 
@@ -72,6 +75,7 @@ class ActiveSet:
 
     def evict_finished(self) -> list[RequestState]:
         """Remove and return all finished requests."""
+
         removed = []
         for request_id, request in list(self._requests.items()):
             if request.finished:
@@ -88,3 +92,6 @@ class ActiveSet:
 
     def __iter__(self):
         return iter(self._requests.values())
+
+
+

@@ -15,16 +15,11 @@ from engine.request_queue import (
     WaitingQueue,
     ActiveSet,
 )
+from scripts.requests import make_request
 
 
-def make_request(
-    request_id: str,
-    prompt_len: int = 4,
-) -> RequestState:
-    return RequestState(
-        request_id=request_id,
-        prompt_ids=list(range(prompt_len)),
-    )
+
+
 
 
 def test_enqueue_request():

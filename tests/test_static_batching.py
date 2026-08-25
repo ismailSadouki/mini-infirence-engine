@@ -1,6 +1,7 @@
 from pathlib import Path
 import sys
 
+
 sys.path.append(
     str(Path(__file__).resolve().parent.parent)
 )
@@ -9,6 +10,8 @@ import torch
 
 from engine.types import RequestState, SamplingConfig
 from engine.static_runner import run_static_batch
+from scripts.requests import make_request
+
 
 
 class FakeTokenizer:
@@ -70,14 +73,9 @@ class FakeAdapter:
         return 1
 
 
-def make_request(
-    request_id,
-    prompt_len=4,
-):
-    return RequestState(
-        request_id=request_id,
-        prompt_ids=list(range(prompt_len)),
-    )
+
+
+
 
 
 def test_static_batch_processes_requests():
