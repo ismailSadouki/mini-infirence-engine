@@ -208,6 +208,26 @@ class FakeAdapter:
             10,
         )
 
+    def forward_decode_ragged(
+        self,
+        input_ids,
+        caches,
+        positions,
+    ):
+        B = input_ids.shape[0]
+
+        outputs = []
+
+        for i in range(B):
+            logits = self.forward_decode_cached(
+                last_token=input_ids[i:i+1],
+                cache=caches[i],
+                position=int(positions[i].item()),
+            )
+            outputs.append(logits)
+
+        return torch.cat(outputs, dim=0)
+
     def sample_next_token(self, logits, config):
         if self.decode_calls == 1:
             return self.tokenizer.eos_token_id

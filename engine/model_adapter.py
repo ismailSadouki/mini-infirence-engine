@@ -321,3 +321,44 @@ class ModelAdapter:
 
 
         return logits
+
+    @torch.inference_mode()
+    def forward_decode_hidden_cached(
+        self,
+        input_ids,
+        cache,
+        position,
+    ):
+        input_ids = input_ids.to(self.device)
+
+        return self.cached_model.forward_decode(
+            input_ids=input_ids,
+            caches=[cache],
+            positions=torch.tensor(
+                [position],
+                dtype=torch.long,
+                device=self.device,
+            ),
+        )
+    @torch.inference_mode()
+    def forward_decode_ragged(
+        self,
+        input_ids,
+        caches,
+        positions,
+    ):
+        """
+        Ragged decode
+        
+        input_ids: [B, 1]
+        caches: list of B independent KV caches
+        positions: [B]
+        
+        Returns:
+            [B, 1, hidden_size]
+        """
+        return self.cached_model.forward_decode(
+            input_ids=input_ids,
+            caches=caches,
+            positions=positions,
+        )
