@@ -230,7 +230,7 @@ The benchmark demonstrates how continuous batching can improve workload-level th
 
 [EXP-2026-014 - Static vs Continuous Batching](experiments/EXP-2026-014.md)
 
-[Continuous Batching Documentation](docs/continuous_batching.md)
+[Continuous Batching Documentation](docs/static_vs_continuous.md)
 
 **Related Papers:**
 
