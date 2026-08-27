@@ -1,11 +1,7 @@
-
-
 from pathlib import Path
 import sys
 
 import torch
-
-
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
@@ -16,13 +12,12 @@ from engine.types import SamplingConfig
 from scripts.requests import make_request
 
 
-
 def test_scheduler_admits_fcfs():
     scheduler = ContinuousScheduler(
         SchedulerConfig(
             max_batch_size=2,
             max_total_active_tokens=100,
-            max_waiting=10
+            max_waiting=10,
         )
     )
 
@@ -36,13 +31,9 @@ def test_scheduler_admits_fcfs():
 
     _, active = scheduler.step()
 
-
-    
-
-    
     assert [r.request_id for r in active] == [
         "r1",
-        "r2"
+        "r2",
     ]
 
     assert len(scheduler.waiting) == 1
@@ -53,7 +44,7 @@ def test_finished_request_is_evicted_and_replaced():
         SchedulerConfig(
             max_batch_size=2,
             max_total_active_tokens=100,
-            max_waiting=10
+            max_waiting=10,
         )
     )
 
@@ -67,17 +58,12 @@ def test_finished_request_is_evicted_and_replaced():
 
     scheduler.step()
 
-
-
     assert len(scheduler.active) == 2
 
     r1.finished = True
     r1.finished_reason = "eos"
 
-    
     _, active = scheduler.step()
-
-
 
     assert [r.request_id for r in active] == [
         "r2",
@@ -107,8 +93,6 @@ def test_scheduler_respects_max_batch_size():
 
     assert len(active) == 2
     assert len(scheduler.waiting) == 1
-
-
 
 
 def test_scheduler_respects_max_total_active_tokens():
@@ -157,12 +141,10 @@ def test_scheduler_allows_exact_total_active_token_limit():
     assert len(scheduler.waiting) == 0
 
 
-
-
-
-
-
+# ------------------------------------------------------------
 # Continuous runner tests
+# ------------------------------------------------------------
+
 class FakeTokenizer:
     eos_token_id = 999
 
@@ -220,10 +202,11 @@ class FakeAdapter:
 
         for i in range(B):
             logits = self.forward_decode_cached(
-                last_token=input_ids[i:i+1],
+                last_token=input_ids[i:i + 1],
                 cache=caches[i],
                 position=int(positions[i].item()),
             )
+
             outputs.append(logits)
 
         return torch.cat(outputs, dim=0)
@@ -234,12 +217,13 @@ class FakeAdapter:
 
         return 1
 
+
 class NonEosFakeAdapter(FakeAdapter):
 
     def sample_next_token(self, logits, config):
         return 1
 
-# request finishes → next request admitted
+
 def test_finished_request_is_replaced_by_waiting_request():
     adapter = FakeAdapter()
 
@@ -257,13 +241,15 @@ def test_finished_request_is_replaced_by_waiting_request():
         make_request("r3"),
     ]
 
+    # max_new_tokens belongs to each request.
     for request in requests:
+        request.max_new_tokens = 3
+
         scheduler.submit(request)
 
     completed = run_continuous(
         scheduler=scheduler,
         adapter=adapter,
-        max_new_tokens=3,
         sampling_config=SamplingConfig(),
     )
 
@@ -274,9 +260,6 @@ def test_finished_request_is_replaced_by_waiting_request():
     ]
 
     assert all(r.finished for r in requests)
-
-
-
 
 
 def test_ttft_is_recorded_once():
@@ -291,24 +274,24 @@ def test_ttft_is_recorded_once():
     )
 
     request = make_request("r1")
+    request.max_new_tokens = 3
 
     scheduler.submit(request)
 
     run_continuous(
         scheduler=scheduler,
         adapter=adapter,
-        max_new_tokens=3,
         sampling_config=SamplingConfig(),
     )
 
     assert request.first_token_time is not None
-
     assert request.prefill_start_time is not None
 
     assert (
         request.first_token_time
         >= request.prefill_start_time
     )
+
 
 def test_request_finishes_exactly_at_max_new_tokens():
     adapter = NonEosFakeAdapter()
@@ -323,12 +306,14 @@ def test_request_finishes_exactly_at_max_new_tokens():
 
     request = make_request("r1")
 
+    # Request-specific generation limit.
+    request.max_new_tokens = 3
+
     scheduler.submit(request)
 
     completed = run_continuous(
         scheduler=scheduler,
         adapter=adapter,
-        max_new_tokens=3,
         sampling_config=SamplingConfig(),
     )
 
@@ -354,12 +339,14 @@ def test_token_timestamps_are_recorded_for_each_generated_token():
 
     request = make_request("r1")
 
+    # Request-specific generation limit.
+    request.max_new_tokens = 4
+
     scheduler.submit(request)
 
     run_continuous(
         scheduler=scheduler,
         adapter=adapter,
-        max_new_tokens=4,
         sampling_config=SamplingConfig(),
     )
 

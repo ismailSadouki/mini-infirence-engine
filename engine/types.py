@@ -56,6 +56,7 @@ class RequestState():
     request_id: str
     prompt_ids: list[int]
     generated_ids: list[int] = field(default_factory=list)
+    max_new_tokens: int = 128
 
     # Sequence / decode state
     prompt_len: int = field(init=False)

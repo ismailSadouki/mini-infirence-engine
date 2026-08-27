@@ -170,7 +170,14 @@ $$
 
 Where appropriate, the implementation also compares cached and uncached logits within numerical tolerance.
 
+
+
+
+
+
 ---
+
+
 
 # Continuous Batching
 
@@ -203,7 +210,32 @@ Finished  Active
 Admit waiting requests
 ```
 
-This makes it possible to measure how request-length variability affects GPU utilization, throughput, and latency.
+Each decode iteration processes one token for every active request. When a request finishes, it is evicted from the active set and a waiting request can be admitted into the newly available slot.
+
+This allows the engine to maintain a higher level of active batch capacity when requests have different output lengths.
+
+The implementation is evaluated against the static batching baseline using workloads with variable generation lengths, measuring:
+
+* Throughput
+* TTFT
+* ITL
+* p50 latency
+* p95 latency
+
+The benchmark demonstrates how continuous batching can improve workload-level throughput and reduce tail latency under variable request lengths.
+
+
+
+**For More Informations:**
+
+[EXP-2026-014 - Static vs Continuous Batching](experiments/EXP-2026-014.md)
+
+[Continuous Batching Documentation](docs/continuous_batching.md)
+
+**Related Papers:**
+
+[Orca: A Distributed Serving System for Transformer-Based Generative Models](https://www.usenix.org/conference/osdi22/presentation/yu)
+
 
 ---
 
