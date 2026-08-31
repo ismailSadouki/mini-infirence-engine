@@ -269,6 +269,15 @@ Attention then gathers the required keys and values through this logical-to-phys
 
 The project measures the resulting difference in memory utilization and concurrency capacity compared with contiguous KV allocation.
 
+
+
+
+**For More Informations:**
+
+[EXP-2026-015 - Contiguous KV Memory Baseline and Fragmentation](experiments/EXP-2026-015.md)
+
+
+
 ---
 
 # Benchmarking Philosophy
