@@ -320,6 +320,13 @@ $$
 
 This prevents isolated numbers such as `500 tokens/sec` from being presented without the conditions that produced them.
 
+
+
+**For More Informations:**
+
+
+[Benchmark Metrics & Measurement Documentation](docs/benchmark-metrics.md)
+
 ---
 
 # Experimental Workloads
