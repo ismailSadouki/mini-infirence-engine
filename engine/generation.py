@@ -81,7 +81,8 @@ def generate_prefill_decode_cached(
     )
 
     logits = adapter.forward_prefill_cached(
-        input_ids
+        input_ids,
+        cache=cache
     )
 
     prefill_tokens = len(prompt_ids)

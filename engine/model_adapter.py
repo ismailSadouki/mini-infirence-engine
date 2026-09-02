@@ -362,3 +362,42 @@ class ModelAdapter:
             caches=caches,
             positions=positions,
         )
+
+
+
+    @torch.inference_mode()
+    def forward_prefill_paged(
+        self,
+        input_ids,
+        cache,
+        seq_id
+    ):
+        hidden_states = self.cached_model.forward_paged(
+            input_ids=input_ids,
+            cache=cache,
+            seq_id=seq_id,
+            position=0
+        )
+        logits = self.model.lm_head(hidden_states)
+
+        return logits
+
+
+    @torch.inference_mode()
+    def forward_decode_paged(
+        self,
+        last_token,
+        cache,
+        seq_id,
+        position,
+    ):
+        hidden_states = self.cached_model.forward_paged(
+            input_ids=last_token,
+            cache=cache,
+            seq_id=seq_id,
+            position=position,
+        )
+
+        logits = self.model.lm_head(hidden_states)
+
+        return logits

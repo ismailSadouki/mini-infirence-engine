@@ -2,6 +2,8 @@
 from pathlib import Path
 import sys
 
+from engine import attention
+
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 import torch
@@ -336,10 +338,149 @@ class CachedQwen2Attention:
 
         return torch.cat(outputs, dim=0)
 
+    def forward_paged(
+            self,
+            hidden_states: torch.Tensor,
+            position_embeddings,
+            cache,
+            seq_id,
+            position: int
+    ):
+        B, T, _ = hidden_states.shape
+        assert B == 1, "paged attention currently supports B=1"
+
+        query_states = self.attention.q_proj(hidden_states)
+        key_states = self.attention.k_proj(hidden_states)
+        value_states = self.attention.v_proj(hidden_states)
+
+        query_states = query_states.view(
+            B,
+            T,
+            self.num_attention_heads,
+            self.head_dim,
+        ).transpose(1, 2)
+
+        key_states = key_states.view(
+            B,
+            T,
+            self.num_key_value_heads,
+            self.head_dim,
+        ).transpose(1, 2)
+
+        value_states = value_states.view(
+            B,
+            T,
+            self.num_key_value_heads,
+            self.head_dim,
+        ).transpose(1, 2)
+
+
+        cos, sin = position_embeddings
+
+        query_states, key_states = apply_rotary_pos_emb(
+            query_states,
+            key_states,
+            cos,
+            sin,
+        )
+
+
+        # Write K/V into paged cache
+
+        for t in range(T):
+            cache.write_kv(
+                seq_id=seq_id,
+                pos=position + t,
+                layer=self.layer_idx,
+                key=key_states[0, :, t, :],
+                value=value_states[0, :, t, :],
+            )
+
+
+        # gather logical k/v seq's
+        total_length = position + T
+
+        gathered_k, gathered_v = cache.gather_kv_for_sequence(
+            seq_id=seq_id,
+            layer=self.layer_idx,
+            length=total_length,
+        )
+
+
+        # gathered:
+        # K: [total_length, num_kv_heads, head_dim]
+        # V: [total_length, num_kv_heads, head_dim]
+        # Convert to:
+        # [1, num_kv_heads, total_length, head_dim]
+
+        gathered_k = gathered_k.transpose(0, 1).unsqueeze(0)
+        gathered_v = gathered_v.transpose(0, 1).unsqueeze(0)
 
 
 
+        gathered_k = gathered_k.repeat_interleave(
+            self.num_key_value_groups,
+            dim=1,
+        )
 
+        gathered_v = gathered_v.repeat_interleave(
+            self.num_key_value_groups,
+            dim=1,
+        )
+
+
+        scores = torch.matmul(
+            query_states,
+            gathered_k.transpose(-1, -2),
+        ) * self.scaling
+
+
+        query_positions = torch.arange(
+            position,
+            position + T,
+            device=hidden_states.device,
+        )
+
+        key_positions = torch.arange(
+            total_length,
+            device=hidden_states.device,
+        )
+
+        causal_mask = (
+            key_positions.unsqueeze(0)
+            <= query_positions.unsqueeze(1)
+        )
+
+        scores = scores.masked_fill(
+            ~causal_mask,
+            torch.finfo(scores.dtype).min,
+        )
+
+        attention_weights = torch.softmax(
+            scores,
+            dim=-1,
+            dtype=torch.float32,
+        ).to(query_states.dtype)
+
+
+        context = torch.matmul(
+            attention_weights,
+            gathered_v,
+        )
+
+
+        context = context.transpose(1, 2).contiguous()
+
+        context = context.view(
+            B,
+            T,
+            self.num_attention_heads * self.head_dim,
+        )
+
+
+        return self.attention.o_proj(context)
+
+    
 class CachedQwen2Model:
     def __init__(self, model: Qwen2Model, config):
         self.model = model
@@ -504,4 +645,66 @@ class CachedQwen2Model:
         hidden_states = self.model.norm(hidden_states)
 
         return hidden_states
-        
+
+    def forward_paged(
+            self,
+            input_ids,
+            cache,
+            seq_id,
+            position
+    ):
+        input_embeds = self.model.embed_tokens(input_ids)
+
+        B, T, _ = input_embeds.shape
+
+        position_ids = torch.arange(
+            position,
+            position + T,
+            dtype=torch.long,
+            device=input_ids.device
+        ).unsqueeze(0)
+
+
+        position_embeddings = self.model.rotary_emb(
+            input_embeds,
+            position_ids
+        )
+
+        hidden_states = input_embeds
+
+        for layer_idx, layer in enumerate(self.model.layers):
+            # Attn
+            residual = hidden_states
+
+            hidden_states = layer.input_layernorm(hidden_states)
+
+            attention_output = self.cached_attentions[
+                layer_idx
+            ].forward_paged(
+                hidden_states=hidden_states,
+                position_embeddings=position_embeddings,
+                cache=cache,
+                seq_id=seq_id,
+                position=position
+            )
+
+            hidden_states = residual + attention_output
+
+            # MLP
+
+            residual = hidden_states
+
+            hidden_states = layer.post_attention_layernorm(
+                hidden_states
+            )
+
+            hidden_states = layer.mlp(
+                hidden_states
+            )
+
+            hidden_states = residual + hidden_states
+
+        hidden_states = self.model.norm(hidden_states)
+
+        return hidden_states
+    
