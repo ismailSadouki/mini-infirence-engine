@@ -238,7 +238,6 @@ The benchmark demonstrates how continuous batching can improve workload-level th
 
 
 ---
-
 # Paged KV Memory
 
 The project implements a simplified paged KV-memory system inspired by the ideas behind PagedAttention.
@@ -267,15 +266,22 @@ $$
 
 Attention then gathers the required keys and values through this logical-to-physical mapping.
 
-The project measures the resulting difference in memory utilization and concurrency capacity compared with contiguous KV allocation.
-
+The project evaluates the resulting memory utilization and estimated concurrent sequence capacity compared with contiguous KV allocation.
 
 
 
 **For More Informations:**
 
-[EXP-2026-015 - Contiguous KV Memory Baseline and Fragmentation](experiments/EXP-2026-015.md)
+- [EXP-2026-015 - Contiguous KV Memory Baseline and Fragmentation](experiments/EXP-2026-015.md)
 
+- [EXP-2026-016 - Paged vs Contiguous KV Memory Utilization](experiments/EXP-2026-016.md)
+
+<!-- ![alt text](image.png) -->
+<img src="image.png" alt="alt text" width="700">
+
+**Related Papers:**
+
+- [Efficient Memory Management for Large Language Model Serving with PagedAttention](https://arxiv.org/pdf/2309.06180)
 
 
 ---
