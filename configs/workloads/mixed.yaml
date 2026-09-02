@@ -1,0 +1,32 @@
+name: mixed
+
+model: Qwen/Qwen2.5-0.5B-Instruct
+dtype: bfloat16
+device: cuda
+
+num_requests: 32
+concurrency: 32
+
+arrival_pattern: burst
+
+prompt_length:
+  distribution: empirical
+  values:
+    - 32
+    - 64
+    - 128
+    - 256
+    - 512
+
+output_length:
+  distribution: empirical
+  values:
+    - 32
+    - 64
+    - 128
+    - 256
+
+warmup: 2
+repetitions: 10
+
+seed: 2026

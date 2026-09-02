@@ -1,0 +1,23 @@
+name: batch1
+
+model: Qwen/Qwen2.5-0.5B-Instruct
+dtype: bfloat16
+device: cuda
+
+num_requests: 1
+concurrency: 1
+
+arrival_pattern: burst
+
+prompt_length:
+  distribution: fixed
+  value: 128
+
+output_length:
+  distribution: fixed
+  value: 64
+
+warmup: 2
+repetitions: 10
+
+seed: 2026
