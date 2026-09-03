@@ -325,7 +325,10 @@ This prevents isolated numbers such as `500 tokens/sec` from being presented wit
 **For More Informations:**
 
 
-[Benchmark Metrics & Measurement Documentation](docs/benchmark-metrics.md)
+- [Benchmark Metrics & Measurement Documentation](docs/benchmark-metrics.md)
+- [EXP-2026-017 — Latency vs Throughput](experiments/EXP-2026-017.md)
+
+<img src="image-1.png" alt="alt text" width="700">
 
 ---
 

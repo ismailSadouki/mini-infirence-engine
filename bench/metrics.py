@@ -37,6 +37,8 @@ class AggregateMetrics:
     output_tokens: int
     throughput: float
 
+    peak_gpu_memory_mb: float | None
+
 
 def percentile(
     values: list[float],
@@ -137,6 +139,7 @@ def compute_request_metrics(
     )
 def aggregate_metrics(
     states: list[RequestState],
+    peak_gpu_memory_mb: float | None = None,
 ) -> AggregateMetrics:
     """
     Aggregate metrics across completed requests.
@@ -252,4 +255,5 @@ def aggregate_metrics(
         output_tokens=output_tokens,
 
         throughput=throughput,
+        peak_gpu_memory_mb=peak_gpu_memory_mb,
     )

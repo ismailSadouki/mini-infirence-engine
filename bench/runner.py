@@ -52,6 +52,16 @@ def synchronize_cuda(device: torch.device) -> None:
         torch.cuda.synchronize()
 
 
+def get_peak_gpu_memory_mb(
+    device: torch.device,
+) -> float | None:
+    if device.type != "cuda":
+        return None
+
+    peak_bytes = torch.cuda.max_memory_allocated(device)
+
+    return peak_bytes / (1024 ** 2)
+
 def create_scheduler(
         spec: WorkloadSpec,
         max_total_active_tokens: int
@@ -225,6 +235,13 @@ def run_benchmark(
         max_total_active_tokens=max_total_active_tokens
     )
 
+
+    if adapter.device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(
+            adapter.device
+        )
+
+
     # Measured repetitions
     measured_states = []
 
@@ -266,12 +283,17 @@ def run_benchmark(
             f"{wall_time:.4f} s"
         )
 
+
+    peak_gpu_memory_mb = get_peak_gpu_memory_mb(
+        adapter.device
+    )
     # Aggregate metrics
 
 
 
     metrics = aggregate_metrics(
-        measured_states
+        measured_states,
+        peak_gpu_memory_mb=peak_gpu_memory_mb,
     )
 
     print()
@@ -330,6 +352,13 @@ def run_benchmark(
     print(
         f"throughput           : "
         f"{metrics.throughput:.2f} tokens/s"
+    )
+
+    print(
+        f"peak GPU memory     : "
+        f"{metrics.peak_gpu_memory_mb:.2f} MB"
+        if metrics.peak_gpu_memory_mb is not None
+        else "peak GPU memory     : N/A"
     )
 
     print("=" * 72)
