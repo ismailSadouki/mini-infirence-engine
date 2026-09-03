@@ -612,6 +612,13 @@ The project investigates **why** the production system is faster, including area
 
 Measured effects are distinguished from architectural inferences that cannot be isolated experimentally.
 
+
+
+**More information:**
+
+* [vLLM on NVIDIA T4](commands/vllm_t4.md)
+
+
 ---
 
 # Quantized Serving
