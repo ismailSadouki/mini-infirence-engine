@@ -155,6 +155,8 @@ Warmup runs are excluded from the reported measurements.
 
 # Architecture
 
+
+
 ```text
                     +-----------------+
                     |  Generation API |
@@ -164,38 +166,36 @@ Warmup runs are excluded from the reported measurements.
                     +-----------------+
                     | Request Manager |
                     +--------+--------+
-                             |
-                    +--------v--------+
-                    |    Scheduler    |
-                    +--------+--------+
-                             |
-                 +-----------+-----------+
-                 |                       |
-                 v                       v
-          +-------------+         +-------------+
-          |   Prefill   |         |    Decode   |
-          +------+------+         +------+------+
-                 |                       |
-                 +-----------+-----------+
-                             |
-                             v
-                      +-------------+
-                      |   KV Cache  |
-                      +------+------+
-                             |
-                     +-------v--------+
-                     |  Block Manager |
-                     +-------+--------+
-                             |
-                     +-------v--------+
-                     |  Block Table  |
-                     +-------+--------+
-                             |
-                     +-------v--------+
-                     | Paged Attention|
-                     +----------------+
-```
+                            │
+                    +--------+------------+
+                    | Continuous Batching |
+                    +--------+------------+
 
+                            │
+                            ▼
+                   ┌─────────────────┐
+                   │ Prefill / Decode│
+                   └────────┬────────┘
+                            │
+                            ▼
+                        KV Cache
+                            │
+              ┌─────────────┴─────────────┐
+              │                           │
+              ▼                           ▼
+       Contiguous KV                  Paged KV
+              │                           │
+              │                    ┌──────┴──────┐
+              │                    │             │
+              │               Block Table    Block Pool
+              │                    │             │
+              └────────────┬───────┴─────────────┘
+                            ▼
+                       Attention
+                            │
+                            ▼
+                     Token Generation
+```
 ---
 
 # Prefill and Decode
