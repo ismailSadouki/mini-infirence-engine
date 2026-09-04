@@ -73,15 +73,7 @@ Every reported benchmark includes a complete workload specification.
 
 # Results First
 
-The mini engine has been validated through correctness tests and controlled inference benchmarks.
 
-Run the full test suite with:
-
-```bash
-pytest -q
-```
-
----
 
 ### Latency vs Throughput
 
@@ -148,6 +140,33 @@ Warmup runs are excluded from the reported measurements.
 [EXP-2026-017 — Latency vs Throughput](experiments/EXP-2026-017.md)
 
 <img src="image-1.png" alt="Latency vs Throughput" width="700">
+
+
+
+
+### vLLM Concurrency Load Test
+
+The vLLM serving endpoint was evaluated under increasing HTTP concurrency from 1 to 32 users.
+
+| Users | Throughput | p95 Latency | p99 Latency | Failures |
+|------:|-----------:|------------:|------------:|---------:|
+| 1  | 2.71 req/s  | 230 ms | 270 ms | 0% |
+| 4  | 9.61 req/s  | 290 ms | 340 ms | 0% |
+| 8  | 18.28 req/s | 310 ms | 400 ms | 0% |
+| 16 | 32.58 req/s | 370 ms | 480 ms | 0% |
+| 32 | 50.98 req/s | 540 ms | 660 ms | 0% |
+
+Throughput increased substantially with concurrency, while latency increased as the server became more heavily loaded.
+
+At 32 concurrent users, throughput reached **50.98 req/s** with **0% failures**, but the experiment did not establish a hard saturation point because throughput was still increasing.
+
+
+<img src="./figures/throughput_vs_concurrency.png" alt="vLLM Throughput vs Concurrency" width="700">
+<img src="./figures/latency_vs_concurrency.png" alt="vLLM Latency vs Concurrency" width="700">
+<img src="./figures/throughput_latency_tradeoff.png" alt="vLLM Throughput-Latency Trade-off" width="700">
+
+**Experiment:** [EXP-2026-017 — vLLM Concurrency Load Test](experiments/EXP-2026-018_vllm_load.md)
+
 
 ---
 
@@ -614,9 +633,13 @@ Measured effects are distinguished from architectural inferences that cannot be 
 
 
 
-**More information:**
+**Expirements and docs:**
 
 * [vLLM on NVIDIA T4](commands/vllm_t4.md)
+* [vLLM Concurrency Load Test](./experiments/EXP-2026-018_vllm_load.md)
+
+<img src="./figures/throughput_latency_tradeoff.png" alt="vLLM Throughput-Latency Trade-off" width="700">
+
 
 
 ---
