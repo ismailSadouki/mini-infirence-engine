@@ -641,6 +641,8 @@ Measured effects are distinguished from architectural inferences that cannot be 
 <img src="./figures/throughput_latency_tradeoff.png" alt="vLLM Throughput-Latency Trade-off" width="700">
 
 
+* [Production vLLM vs Mini Inference Engine](./reports/vllm_source_mapping.md)
+
 
 ---
 
