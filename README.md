@@ -75,7 +75,7 @@ Every reported benchmark includes a complete workload specification.
 
 
 
-### Latency vs Throughput
+### Mini Engine - Latency vs Throughput
 
 The continuous batching benchmark evaluates concurrency levels of 1, 8, and 32 using the same general prompt and output distributions.
 
@@ -137,7 +137,7 @@ Warmup runs are excluded from the reported measurements.
 
 **Experiment:**
 
-[EXP-2026-017 — Latency vs Throughput](experiments/EXP-2026-017.md)
+* [EXP-2026-017 — Latency vs Throughput](experiments/EXP-2026-017.md)
 
 <img src="image-1.png" alt="Latency vs Throughput" width="700">
 
@@ -165,7 +165,39 @@ At 32 concurrent users, throughput reached **50.98 req/s** with **0% failures**,
 <img src="./figures/latency_vs_concurrency.png" alt="vLLM Latency vs Concurrency" width="700">
 <img src="./figures/throughput_latency_tradeoff.png" alt="vLLM Throughput-Latency Trade-off" width="700">
 
-**Experiment:** [EXP-2026-017 — vLLM Concurrency Load Test](experiments/EXP-2026-018_vllm_load.md)
+**Experiment:** 
+* [EXP-2026-017 — vLLM Concurrency Load Test](experiments/EXP-2026-018_vllm_load.md)
+
+
+
+### Mini Engine - Tesla T4
+
+The same mini inference engine was also benchmarked on a Tesla T4 using the same model, dtype, prompt length, output length, and concurrency levels.
+
+| Concurrency |   TTFT p50 |   TTFT p95 |   ITL p50 |   ITL p95 |  Throughput | Peak GPU Memory |
+| ----------: | ---------: | ---------: | --------: | --------: | ----------: | --------------: |
+|           1 |   61.08 ms |   91.94 ms |  27.15 ms |  40.82 ms | 33.31 tok/s |      1019.01 MB |
+|           8 |  275.74 ms |  468.25 ms | 102.39 ms | 142.38 ms | 71.29 tok/s |      1176.70 MB |
+|          32 | 1038.24 ms | 1862.93 ms | 341.99 ms | 461.24 ms | 84.40 tok/s |      1716.70 MB |
+
+This experiment provides a second hardware reference point for the mini engine while preserving the original RTX 3050 benchmark as the primary baseline.
+
+The results show that increasing concurrency improves total throughput, but the throughput curve begins to flatten at higher concurrency while TTFT and ITL increase substantially.
+
+#### Benchmark Environment
+
+```text
+Model:        Qwen/Qwen2.5-0.5B-Instruct
+Device:       NVIDIA Tesla T4
+Precision:    BF16
+Decoding:     Greedy
+Concurrency:  1 / 8 / 32
+Prompt:       128 tokens
+Output:       64 tokens
+```
+
+**Experiment:**
+* [EXP-2026-019 — Mini Engine vs vLLM on T4](./experiments/EXP-2026-019_vllm_vs_mini_engine.md)
 
 
 ---
@@ -636,12 +668,14 @@ Measured effects are distinguished from architectural inferences that cannot be 
 **Expirements and docs:**
 
 * [vLLM on NVIDIA T4](commands/vllm_t4.md)
-* [vLLM Concurrency Load Test](./experiments/EXP-2026-018_vllm_load.md)
+* [EXP-2026-018 vLLM Concurrency Load Test](./experiments/EXP-2026-018_vllm_load.md)
 
 <img src="./figures/throughput_latency_tradeoff.png" alt="vLLM Throughput-Latency Trade-off" width="700">
 
 
 * [Production vLLM vs Mini Inference Engine](./reports/vllm_source_mapping.md)
+* [EXP-2026-019 - Mini Engine vs vLLM on T4](./experiments/EXP-2026-019_vllm_vs_mini_engine.md)
+* [Why vLLM Wins - Gap Analysis](./reports/why_vllm_wins.md)
 
 
 ---
@@ -797,12 +831,16 @@ M1  KV cache and generation                      ✓
 M2  Continuous batching                          ✓
 M3  Paged KV memory                              ✓
 M4  Benchmark harness + documentation            ✓
-M5  vLLM deployment and gap analysis             ⬜
+M5  vLLM deployment and gap analysis             ✓
 M6  Quantized Darija model serving               ⬜
 ```
 
 ## Current Position
 
-The mini inference engine has reached the point where its core mechanisms are implemented, tested, and benchmarked.
+The mini inference engine has completed its core implementation, correctness validation, benchmarking, and paged KV-memory work.
 
-The next stage is **vLLM**: use the mini engine as a mechanism-level baseline, reproduce the equivalent serving workload, and investigate where the production system gains performance.
+vLLM has been deployed, load-tested, mapped to the mini engine's mechanisms, and compared against the mini engine under a controlled T4 workload.
+
+The comparison shows that vLLM achieves substantially higher throughput and scales much more effectively with concurrency. The resulting gap analysis identifies optimized GPU execution, attention kernels, scheduling, KV-cache integration, and runtime overhead as the main areas separating the educational implementation from a production serving engine.
+
+The next stage is **quantized serving of the Algerian Darija DPO model**, evaluating BF16, GPTQ, and AWQ across quality, memory, and latency.
